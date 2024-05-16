@@ -1,38 +1,42 @@
-import os
-import openai
-from config import apikey
+import time
+from selenium import webdriver
+import speech_recognition as sr
+import pyttsx3
 
-openai.api_key = apikey
+def get_voice_input():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        audio = recognizer.listen(source)
+    try:
+        print("Recognizing...")
+        query = recognizer.recognize_google(audio)
+        print(f"You said: {query}")
+        return query
+    except Exception as e:
+        print("Sorry, I couldn't understand. Please try again.")
+        return ""
 
-response = openai.Completion.create(
-  model="text-davinci-003",
-  prompt="Write an email to my boss for resignation?",
-  temperature=0.7,
-  max_tokens=256,
-  top_p=1,
-  frequency_penalty=0,
-  presence_penalty=0
-)
+def send_prompt_to_chatGPT(prompt):
+    driver = webdriver.Chrome()  # Path to your ChromeDriver
+    driver.get("https://chatgpt.com/c/97297fbb-b76a-4010-86cd-006e06202337")  # URL of your ChatGPT prompt bar
+    prompt_input = driver.find_element_by_css_selector('textarea[data-message-author-role="user"]')
+    prompt_input.send_keys(prompt)
+    time.sleep(2)  # Adjust delay as needed for ChatGPT to generate response
+    response_element = driver.find_element_by_css_selector('div[data-message-author-role="assistant"]')
+    response = response_element.text.strip()
+    driver.quit()
+    return response
 
-print(response)
-'''
-{
-  "choices": [
-    {
-      "finish_reason": "stop",
-      "index": 0,
-      "logprobs": null,
-      "text": "\n\nSubject: Resignation\n\nDear [Name],\n\nI am writing to inform you of my intention to resign from my current position at [Company]. My last day of work will be [date].\n\nI have enjoyed my time at [Company], and I am grateful for the opportunity to work here. I have learned a great deal during my time in this position, and I am grateful for the experience.\n\nIf I can be of any assistance during this transition, please do not hesitate to ask.\n\nThank you for your understanding.\n\nSincerely,\n[Your Name]"
-    }
-  ],
-  "created": 1683815400,
-  "id": "cmpl-7F1aqg7BkzIY8vBnCxYQh8Xp4wO85",
-  "model": "text-davinci-003",
-  "object": "text_completion",
-  "usage": {
-    "completion_tokens": 125,
-    "prompt_tokens": 9,
-    "total_tokens": 134
-  }
-}
-'''
+def convert_to_speech(text):
+    engine = pyttsx3.init()
+    engine.say(text)
+    engine.runAndWait()
+
+if __name__ == "__main__":
+    while True:
+        user_input = get_voice_input()
+        if user_input:
+            chatGPT_response = send_prompt_to_chatGPT(user_input)
+            print("ChatGPT Response:", chatGPT_response)
+            convert_to_speech(chatGPT_response)
